@@ -3,9 +3,26 @@ from tkinter import scrolledtext, messagebox, Menu
 import requests
 from bs4 import BeautifulSoup
 import re
+import json
+import os
+
+# File to store bookmarks
+BOOKMARK_FILE = 'bookmarks.json'
+
+# Load bookmarks from the file
+def load_bookmarks():
+    if os.path.exists(BOOKMARK_FILE):
+        with open(BOOKMARK_FILE, 'r') as file:
+            return json.load(file)
+    return []
+
+# Save bookmarks to the file
+def save_bookmarks(bookmarks):
+    with open(BOOKMARK_FILE, 'w') as file:
+        json.dump(bookmarks, file)
 
 # Store bookmarked resources and user interactions for recommendations
-bookmarked_resources = []
+bookmarked_resources = load_bookmarks()
 user_interactions = []
 
 # Function to fetch learning resources from the web
@@ -77,6 +94,7 @@ def bookmark_resource(event):
     if line_content.startswith("Bookmark"):
         link = line_content.split("Bookmark")[1].strip()
         bookmarked_resources.append(link)
+        save_bookmarks(bookmarked_resources)
         messagebox.showinfo("Bookmark", "Resource bookmarked!")
 
 # Function to recommend resources based on user interactions
@@ -90,6 +108,19 @@ def recommend_resources():
     chat_window.config(state=tk.NORMAL)
     chat_window.insert(tk.END, "Bot: Based on your interest in '" + recent_interaction + "', here are some recommendations:\n", "bot_response")
     for link in response:
+        chat_window.insert(tk.END, link + "\n", "bot_response")
+    chat_window.config(state=tk.DISABLED)
+    chat_window.yview(tk.END)
+
+# Function to show bookmarks
+def show_bookmarks():
+    bookmarks = load_bookmarks()
+    if not bookmarks:
+        messagebox.showinfo("Bookmarks", "No bookmarks available.")
+        return
+    chat_window.config(state=tk.NORMAL)
+    chat_window.insert(tk.END, "Bot: Here are your bookmarks:\n", "bot_response")
+    for link in bookmarks:
         chat_window.insert(tk.END, link + "\n", "bot_response")
     chat_window.config(state=tk.DISABLED)
     chat_window.yview(tk.END)
@@ -128,7 +159,7 @@ app.config(menu=menu)
 
 bookmarks_menu = Menu(menu, tearoff=0)
 menu.add_cascade(label="Bookmarks", menu=bookmarks_menu)
-bookmarks_menu.add_command(label="Show Bookmarks", command=lambda: messagebox.showinfo("Bookmarks", "\n".join(bookmarked_resources)))
+bookmarks_menu.add_command(label="Show Bookmarks", command=show_bookmarks)
 
 recommend_menu = Menu(menu, tearoff=0)
 menu.add_cascade(label="Recommendations", menu=recommend_menu)
